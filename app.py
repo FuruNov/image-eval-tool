@@ -39,7 +39,9 @@ from views import (
     GMSView,
     FFTView,
     HistogramView,
-    ROIView
+    ROIView,
+    FlickerView,
+    DeltaEView
 )
 
 # Load configuration
@@ -53,14 +55,18 @@ st.set_page_config(layout=app_config["page"]["layout"], page_title=app_config["p
 def main():
     st.title(app_config["page"]["page_title"])
     
+    # --- Sidebar Inputs ---
+    # 1. Reference Input
+    st.sidebar.subheader("1. Reference")
+    ref_file = st.sidebar.file_uploader("Upload GT", type=['png', 'jpg', 'jpeg', 'tif', 'bmp'])
+    
+    # 2. Methods Input
+    st.sidebar.subheader("2. Methods")
+    method_files = st.sidebar.file_uploader("Upload Methods", type=['png', 'jpg', 'jpeg', 'tif', 'bmp'], accept_multiple_files=True)
+
+    st.sidebar.divider()
+
     # --- Sidebar Settings ---
-    st.sidebar.header("Comparison Settings")
-    
-    # 機能トグル
-    features = {}
-    for key, settings in app_config["sidebar"]["toggles"].items():
-        features[key] = st.sidebar.checkbox(settings["label"], value=settings["default"])
-    
     st.sidebar.subheader("Metrics")
     metrics_toggles = {}
     for key, settings in app_config["sidebar"]["metrics"].items():
@@ -71,16 +77,12 @@ def main():
             continue
             
         metrics_toggles[key] = st.sidebar.checkbox(settings["label"], value=settings["default"])
-    
-    st.sidebar.divider()
-    
-    # 1. Reference Input
-    st.sidebar.subheader("1. Reference")
-    ref_file = st.sidebar.file_uploader("Upload GT", type=['png', 'jpg', 'jpeg', 'tif', 'bmp'])
-    
-    # 2. Methods Input
-    st.sidebar.subheader("2. Methods")
-    method_files = st.sidebar.file_uploader("Upload Methods", type=['png', 'jpg', 'jpeg', 'tif', 'bmp'], accept_multiple_files=True)
+
+    st.sidebar.subheader("Comparison Settings")
+    # 機能トグル
+    features = {}
+    for key, settings in app_config["sidebar"]["toggles"].items():
+        features[key] = st.sidebar.checkbox(settings["label"], value=settings["default"])
 
     # --- Strategies Initialization ---
     strategies = {
@@ -91,7 +93,9 @@ def main():
         app_config["tabs"]["fft"]: FFTView(),
         app_config["tabs"]["hist"]: HistogramView(),
         app_config["tabs"]["slider"]: SliderView(),
-        app_config["tabs"]["roi"]: ROIView()
+        app_config["tabs"]["roi"]: ROIView(),
+        app_config["tabs"]["flicker"]: FlickerView(),
+        app_config["tabs"]["delta_e"]: DeltaEView()
     }
     
     # --- Metric Functions ---
@@ -137,6 +141,7 @@ def main():
         crop_y, crop_x, crop_size = 0, 0, 100
         # Show ROI settings if Zoom is enabled OR ROI Check view is enabled
         if features["zoom"] or features.get("roi", False):
+            st.sidebar.divider()
             st.sidebar.subheader("🔍 Zoom ROI Settings")
             crop_size = st.sidebar.slider("Box Size", 32, min(h, w)//2, 100)
             crop_x = st.sidebar.slider("X Position", 0, w - crop_size, w//2 - crop_size//2)
@@ -151,7 +156,6 @@ def main():
         # --- 【追加】ラインプロファイル設定 ---
         profile_y = h // 2
         if features["profile"]:
-            st.sidebar.divider()
             st.sidebar.subheader("📈 Line Profile Settings")
             # 行選択スライダー
             profile_y = st.sidebar.slider("Y Coordinate (Row)", 0, h-1, h//2)
@@ -173,6 +177,8 @@ def main():
             # タブ設定：有効な機能に応じて動的に追加
             tabs = [app_config["tabs"]["spatial"]]
             if features["roi"]: tabs.append(app_config["tabs"]["roi"])
+            if features["flicker"]: tabs.append(app_config["tabs"]["flicker"])
+            if features["delta_e"]: tabs.append(app_config["tabs"]["delta_e"])
             if features["profile"]: tabs.append(app_config["tabs"]["profile"])
             if features["sobel"]: tabs.append(app_config["tabs"]["sobel"])
             if features["gms"]: tabs.append(app_config["tabs"]["gms"])

@@ -18,7 +18,9 @@ Ground Truth (Reference) と提案手法 (Method) の画像をアップロード
 
 ### 2. 多角的な可視化 (Views)
 タブ切り替えにより、様々な視点から画像を評価できます。
-*   **Spatial (Standard)**: 再構成画像と誤差マップ (Error Map) を表示。誤差マップはダウンロード可能です。
+*   **Spatial (Standard)**: 再構成画像と誤差マップ (Error Map) を表示。
+*   **Flicker Test (Blink)**: Reference と Method を交互に表示するアニメーション (GIF) で、微細な違いや位置ズレを視覚的に検出します。
+*   **CIELAB ΔE Map**: 人間の視覚特性に近い CIELAB 色空間における色差 (ΔE) をヒートマップで表示します。
 *   **ROI Check**: 全体像（ROI枠付き）と拡大画像（Zoomed ROI）を並べて表示し、コンテキストと詳細を同時に確認できます。
 *   **Line Profile 📈**: 指定したライン上の画素値をプロットし、エッジの鋭さやアーティファクトを確認できます (Interactive Plotly)。
 *   **Sobel Edge**: Sobel フィルタによるエッジ検出結果と、その誤差を表示します。
@@ -72,7 +74,7 @@ uv sync
 3. **評価・分析**:
    *   メインエリアに画像と評価結果が表示されます。
    *   タブを切り替えて詳細な分析を行います。
-   *   サイドバーの **"Analysis Settings"** で ROI (Crop) の位置やサイズ、ラインプロファイルの位置を調整します。
+   *   サイドバーの **"Zoom ROI Settings"** で ROI (Crop) の位置やサイズ、**"Line Profile Settings"** でラインプロファイルの位置を調整します。
 
 ## 設定 (Configuration)
 

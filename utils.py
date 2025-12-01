@@ -6,6 +6,8 @@ import plotly.graph_objects as go
 import streamlit as st
 import image_similarity_measures.quality_metrics as ism
 import image_similarity_measures.quality_metrics as ism
+import io
+import pathlib
 try:
     import torch
     import pyiqa
@@ -72,6 +74,7 @@ def compute_clipiqa(img):
     return compute_pyiqa_metric(img, 'clipiqa')
 
 
+@st.cache_data
 def compute_snr(ref, dist):
     """Signal-to-Noise Ratio (SNR) の計算"""
     # 0除算回避
@@ -136,12 +139,28 @@ def compute_gms(ref, dist, c=0.0026):
     
     return gms_map, gmsd
 
-def load_image(uploaded_file):
-    """画像読み込み & 正規化 (0-1 float32)"""
-    if uploaded_file is None:
-        return None
-    image = Image.open(uploaded_file).convert('RGB')
+@st.cache_data
+def load_image_from_bytes(file_bytes):
+    """
+    バイト列から画像を読み込み、正規化(0-1 float)して返す (キャッシュ対応)
+    """
+    import io
+    image = Image.open(io.BytesIO(file_bytes))
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
     return np.array(image).astype(np.float32) / 255.0
+
+def load_image(image_file):
+    """
+    画像ファイルを読み込む (Wrapper)
+    """
+    import pathlib
+    if isinstance(image_file, (str, pathlib.Path)):
+        with open(image_file, "rb") as f:
+            return load_image_from_bytes(f.read())
+    else:
+        # UploadedFile
+        return load_image_from_bytes(image_file.getvalue())
 
 def to_grayscale(img):
     """RGBを簡易グレースケールに変換 (平均法)"""
@@ -325,3 +344,77 @@ def plot_histograms(ref_img, dist_img, method_name):
     }
     
     return fig, stats
+
+@st.cache_data
+def compute_delta_e(ref, dist):
+    """
+    CIELAB色空間における色差 (Delta E) を計算する
+    ref, dist: RGB画像 (0-255, uint8) or (0.0-1.0, float)
+    Returns: delta_e_map (H, W), mean_delta_e
+    """
+    # Ensure images are uint8 for cv2 conversion
+    if ref.dtype != np.uint8:
+        ref = (ref * 255).astype(np.uint8)
+    if dist.dtype != np.uint8:
+        dist = (dist * 255).astype(np.uint8)
+        
+    # Convert to LAB
+    # cv2.cvtColor returns LAB in specific ranges: L [0, 255], A [0, 255], B [0, 255] for uint8
+    # Ideally we want standard CIELAB ranges: L [0, 100], a [-128, 127], b [-128, 127]
+    # But for simple Delta E, Euclidean distance in the same space is what matters.
+    # However, standard Delta E uses L*a*b* coordinates.
+    # skimage.color.rgb2lab is better if available, but let's stick to cv2 for minimal dependencies if possible.
+    # Actually, cv2.cvtColor(..., cv2.COLOR_RGB2Lab) for uint8 scales:
+    # L <- L * 255/100, a <- a + 128, b <- b + 128
+    # So we should convert back to float LAB to get correct Delta E magnitude if we want standard units.
+    
+    ref_lab = cv2.cvtColor(ref, cv2.COLOR_RGB2Lab).astype(np.float32)
+    dist_lab = cv2.cvtColor(dist, cv2.COLOR_RGB2Lab).astype(np.float32)
+    
+    # Unscale to standard CIELAB
+    # L: 0..255 -> 0..100
+    ref_lab[:,:,0] = ref_lab[:,:,0] * (100.0/255.0)
+    dist_lab[:,:,0] = dist_lab[:,:,0] * (100.0/255.0)
+    
+    # a, b: 0..255 -> -128..127
+    ref_lab[:,:,1] = ref_lab[:,:,1] - 128.0
+    dist_lab[:,:,1] = dist_lab[:,:,1] - 128.0
+    ref_lab[:,:,2] = ref_lab[:,:,2] - 128.0
+    dist_lab[:,:,2] = dist_lab[:,:,2] - 128.0
+    
+    # Calculate Euclidean distance
+    diff = ref_lab - dist_lab
+    delta_e_map = np.sqrt(np.sum(diff**2, axis=2))
+    
+    return delta_e_map, np.mean(delta_e_map)
+
+def create_flicker_gif(ref, dist, duration=500):
+    """
+    ReferenceとMethodを交互に表示するGIFを作成する
+    ref, dist: RGB numpy array
+    duration: ms per frame
+    Returns: bytes of GIF
+    """
+    if ref.dtype != np.uint8:
+        ref = (ref * 255).astype(np.uint8)
+    if dist.dtype != np.uint8:
+        dist = (dist * 255).astype(np.uint8)
+        
+    img1 = Image.fromarray(ref)
+    img2 = Image.fromarray(dist)
+    
+    import io
+    bio = io.BytesIO()
+    
+    # Save as GIF
+    img1.save(
+        bio,
+        format='GIF',
+        save_all=True,
+        append_images=[img2],
+        duration=duration,
+        loop=0,
+        optimize=False
+    )
+    
+    return bio.getvalue()

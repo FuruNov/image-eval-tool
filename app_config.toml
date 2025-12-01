@@ -9,7 +9,9 @@ profile = { label = "Enable Line Profile 📈", default = true }
 sobel = { label = "Enable Sobel Edge", default = false }
 gms = { label = "Enable GMS Map", default = false }
 hist = { label = "Enable Histogram", default = false }
-slider = { label = "Enable Image Slider", default = false }
+slider = { label = "Enable Image Slider", default = true }
+flicker = { label = "Enable Flicker Test", default = true }
+delta_e = { label = "Enable CIELAB ΔE", default = false }
 roi = { label = "Enable ROI Check", default = true }
 
 [sidebar.metrics]
@@ -27,9 +29,12 @@ clipiqa = { label = "CLIPIQA (No-Ref)", default = false }
 spatial = "Spatial (Standard)"
 roi = "ROI Check"
 
+
 profile = "Line Profile 📈"
 sobel = "Sobel Edge"
 gms = "GMS Map"
 hist = "Histogram"
 slider = "Image Slider"
+flicker = "Flicker Test (Blink)"
+delta_e = "CIELAB ΔE Map"
 fft = "Frequency (FFT)"

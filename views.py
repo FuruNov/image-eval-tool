@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from streamlit_image_comparison import image_comparison
 from PIL import Image
-import io
+
 
 import config
 from utils import (
@@ -14,7 +14,9 @@ from utils import (
     draw_roi,
     plot_line_profile,
     plot_histograms,
-    compute_gms
+    compute_gms,
+    compute_delta_e,
+    create_flicker_gif
 )
 
 # --- Strategy Pattern for Views ---
@@ -30,7 +32,9 @@ class SpatialView(ViewStrategy):
         if context['zoom_enabled']:
             ref_img = get_crop(ref_img, context['crop_y'], context['crop_x'], context['crop_size'])
         container.image(ref_img, width="stretch", caption="Ground Truth")
-        container.markdown("") # Placeholder
+        # Reference Error Map (Black)
+        error_map = np.zeros_like(ref_img)
+        container.image(error_map, width="stretch", caption="Error Map (Ref)")
 
     def render_method(self, container, ref_img, dist_img, context):
         if context['zoom_enabled']:
@@ -44,22 +48,6 @@ class SpatialView(ViewStrategy):
         container.image(dist_img, width="stretch", caption="Restored")
         container.image(heatmap, width="stretch", caption=f"Error Map ({cmap_name})")
         
-        # Download Button for Error Map
-        # Convert heatmap to bytes
-        # heatmap is RGBA float 0-1. Convert to uint8 0-255
-        heatmap_uint8 = (heatmap * 255).astype(np.uint8)
-        heatmap_pil = Image.fromarray(heatmap_uint8)
-        buf = io.BytesIO()
-        heatmap_pil.save(buf, format="PNG")
-        byte_im = buf.getvalue()
-        container.download_button(
-            label="Download Error Map",
-            data=byte_im,
-            file_name=f"error_map_{context.get('method_name', 'method')}.png",
-            mime="image/png",
-            key=f"dl_err_{context.get('method_name', 'method')}"
-        )
-
 class ProfileView(ViewStrategy):
     def render_reference(self, container, ref_img, context):
         h = ref_img.shape[0]
@@ -241,3 +229,52 @@ class ROIView(ViewStrategy):
         # 2. Zoomed Crop
         dist_crop = get_crop(dist_img, context['crop_y'], context['crop_x'], context['crop_size'])
         container.image(dist_crop, width="stretch", caption="Zoomed ROI")
+
+class FlickerView(ViewStrategy):
+    def render_reference(self, container, ref_img, context):
+        # Show static reference
+        if context['zoom_enabled']:
+            crop_y, crop_x, crop_size = context['crop_y'], context['crop_x'], context['crop_size']
+            ref_img = get_crop(ref_img, crop_y, crop_x, crop_size)
+        container.image(ref_img, caption="Reference", use_container_width=True)
+
+    def render_method(self, container, ref_img, dist_img, context):
+        # Show Flicker GIF
+        if context['zoom_enabled']:
+            crop_y, crop_x, crop_size = context['crop_y'], context['crop_x'], context['crop_size']
+            ref_img = get_crop(ref_img, crop_y, crop_x, crop_size)
+            dist_img = get_crop(dist_img, crop_y, crop_x, crop_size)
+            
+        gif_bytes = create_flicker_gif(ref_img, dist_img, duration=500)
+        container.image(gif_bytes, caption="Flicker (Ref ↔ Method)", use_container_width=True)
+
+class DeltaEView(ViewStrategy):
+    def render_reference(self, container, ref_img, context):
+        if context['zoom_enabled']:
+            crop_y, crop_x, crop_size = context['crop_y'], context['crop_x'], context['crop_size']
+            ref_img = get_crop(ref_img, crop_y, crop_x, crop_size)
+        container.image(ref_img, caption="Reference", use_container_width=True)
+
+    def render_method(self, container, ref_img, dist_img, context):
+        if context['zoom_enabled']:
+            crop_y, crop_x, crop_size = context['crop_y'], context['crop_x'], context['crop_size']
+            ref_img = get_crop(ref_img, crop_y, crop_x, crop_size)
+            dist_img = get_crop(dist_img, crop_y, crop_x, crop_size)
+            
+        delta_e_map, mean_delta_e = compute_delta_e(ref_img, dist_img)
+        max_delta_e = np.max(delta_e_map)
+        
+        # Normalize for visualization (0-255)
+        # Use a colormap (e.g., inferno or jet)
+        # Normalize to 0-1 range for colormap
+        if max_delta_e > 0:
+            norm_map = delta_e_map / max_delta_e
+        else:
+            norm_map = delta_e_map
+            
+        # Apply colormap (returns RGBA, take RGB)
+        # Using 'jet' or 'inferno' to highlight differences
+        heatmap = plt.get_cmap('jet')(norm_map)[:, :, :3]
+        
+        # Display as image
+        container.image(heatmap, caption=f"ΔE Map (Mean: {mean_delta_e:.2f}, Max: {max_delta_e:.2f})", use_container_width=True)
