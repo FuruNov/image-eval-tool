@@ -1,0 +1,29 @@
+[page]
+page_title = "Image Quality Assessment Tool"
+layout = "wide"
+
+[sidebar.toggles]
+zoom = { label = "Enable ROI Zoom", default = true }
+fft = { label = "Enable FFT Analysis", default = false }
+profile = { label = "Enable Line Profile 📈", default = true }
+sobel = { label = "Enable Sobel Edge", default = false }
+gms = { label = "Enable GMS Map", default = false }
+hist = { label = "Enable Histogram", default = false }
+slider = { label = "Enable Image Slider", default = false }
+
+[sidebar.metrics]
+snr = { label = "SNR", default = false }
+psnr = { label = "PSNR", default = true }
+ssim = { label = "SSIM", default = true }
+fsim = { label = "FSIM", default = false }
+gmsd = { label = "GMSD", default = true }
+
+[tabs]
+spatial = "Spatial (Standard)"
+
+profile = "Line Profile 📈"
+sobel = "Sobel Edge"
+gms = "GMS Map"
+hist = "Histogram"
+slider = "Image Slider"
+fft = "Frequency (FFT)"
