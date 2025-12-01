@@ -10,6 +10,7 @@ sobel = { label = "Enable Sobel Edge", default = false }
 gms = { label = "Enable GMS Map", default = false }
 hist = { label = "Enable Histogram", default = false }
 slider = { label = "Enable Image Slider", default = false }
+roi = { label = "Enable ROI Check", default = true }
 
 [sidebar.metrics]
 snr = { label = "SNR", default = false }
@@ -18,9 +19,13 @@ ssim = { label = "SSIM", default = true }
 fsim = { label = "FSIM", default = false }
 gmsd = { label = "GMSD", default = true }
 niqe = { label = "NIQE (No-Ref)", default = false }
+maniqa = { label = "MANIQA (No-Ref)", default = false }
+musiq = { label = "MUSIQ (No-Ref)", default = false }
+clipiqa = { label = "CLIPIQA (No-Ref)", default = false }
 
 [tabs]
 spatial = "Spatial (Standard)"
+roi = "ROI Check"
 
 profile = "Line Profile 📈"
 sobel = "Sobel Edge"

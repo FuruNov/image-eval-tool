@@ -10,11 +10,16 @@ Ground Truth (Reference) と提案手法 (Method) の画像をアップロード
 *   **PSNR (Peak Signal-to-Noise Ratio)**: ピーク信号対雑音比
 *   **SSIM (Structural Similarity)**: 構造的類似性
 *   **GMSD (Gradient Magnitude Similarity Deviation)**: 勾配の類似性に基づく画質評価指標
-*   **NIQE (Natural Image Quality Evaluator)**: 参照画像不要 (No-Reference) の自然画質評価指標。再構成特有の不自然さを評価します (要 `pyiqa`)。
+*   **No-Reference Metrics (Local Only)**: `pyiqa` が利用可能な環境では、以下の指標が利用可能です。
+    *   **NIQE**: 自然画像統計 (NSS) に基づく指標。学習データ（人間のスコア）を使用せず、画像の「自然さ」からの逸脱を測定します。再構成アーティファクトの検出に有効です。
+    *   **MANIQA**: Vision Transformer と Attention 機構を用いた深層学習ベースの指標。人間の主観評価スコア（MOS）と高い相関を持ちます。
+    *   **MUSIQ**: マルチスケール Transformer を用いた指標。異なる解像度やアスペクト比の画像に対してロバストな評価が可能です。
+    *   **CLIPIQA**: 大規模言語画像モデル CLIP を用いたゼロショット指標。"Good photo" / "Bad photo" のテキストプロンプトとの類似度に基づいてスコアを算出します。
 
 ### 2. 多角的な可視化 (Views)
 タブ切り替えにより、様々な視点から画像を評価できます。
 *   **Spatial (Standard)**: 再構成画像と誤差マップ (Error Map) を表示。誤差マップはダウンロード可能です。
+*   **ROI Check**: 全体像（ROI枠付き）と拡大画像（Zoomed ROI）を並べて表示し、コンテキストと詳細を同時に確認できます。
 *   **Line Profile 📈**: 指定したライン上の画素値をプロットし、エッジの鋭さやアーティファクトを確認できます (Interactive Plotly)。
 *   **Sobel Edge**: Sobel フィルタによるエッジ検出結果と、その誤差を表示します。
 *   **GMS Map**: 局所的な勾配類似性 (GMS) マップを表示します。

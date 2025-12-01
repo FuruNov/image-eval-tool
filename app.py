@@ -26,6 +26,9 @@ from utils import (
     compute_fsim,
     compute_gms,
     compute_niqe,
+    compute_maniqa,
+    compute_musiq,
+    compute_clipiqa,
     HAS_PYIQA
 )
 from views import (
@@ -35,7 +38,8 @@ from views import (
     SliderView,
     GMSView,
     FFTView,
-    HistogramView
+    HistogramView,
+    ROIView
 )
 
 # Load configuration
@@ -60,8 +64,9 @@ def main():
     st.sidebar.subheader("Metrics")
     metrics_toggles = {}
     for key, settings in app_config["sidebar"]["metrics"].items():
-        # Skip NIQE if not available
-        if key == "niqe" and not HAS_PYIQA:
+        # Skip PyIQA metrics if not available
+        pyiqa_metrics = ["niqe", "maniqa", "musiq", "clipiqa"]
+        if key in pyiqa_metrics and not HAS_PYIQA:
             metrics_toggles[key] = False
             continue
             
@@ -85,7 +90,8 @@ def main():
         app_config["tabs"]["gms"]: GMSView(),
         app_config["tabs"]["fft"]: FFTView(),
         app_config["tabs"]["hist"]: HistogramView(),
-        app_config["tabs"]["slider"]: SliderView()
+        app_config["tabs"]["slider"]: SliderView(),
+        app_config["tabs"]["roi"]: ROIView()
     }
     
     # --- Metric Functions ---
@@ -95,7 +101,10 @@ def main():
         "ssim": lambda r, d: ssim(r, d, data_range=1.0, channel_axis=-1),
         "fsim": compute_fsim,
         "gmsd": lambda r, d: compute_gms(r, d)[1],
-        "niqe": lambda r, d: compute_niqe(d) # NIQE only needs distorted image
+        "niqe": lambda r, d: compute_niqe(d), # NIQE only needs distorted image
+        "maniqa": lambda r, d: compute_maniqa(d),
+        "musiq": lambda r, d: compute_musiq(d),
+        "clipiqa": lambda r, d: compute_clipiqa(d)
     }
 
     # --- Default Images Logic ---
@@ -126,7 +135,8 @@ def main():
         
         # --- ズーム設定 ---
         crop_y, crop_x, crop_size = 0, 0, 100
-        if features["zoom"]:
+        # Show ROI settings if Zoom is enabled OR ROI Check view is enabled
+        if features["zoom"] or features.get("roi", False):
             st.sidebar.subheader("🔍 Zoom ROI Settings")
             crop_size = st.sidebar.slider("Box Size", 32, min(h, w)//2, 100)
             crop_x = st.sidebar.slider("X Position", 0, w - crop_size, w//2 - crop_size//2)
@@ -162,6 +172,7 @@ def main():
             
             # タブ設定：有効な機能に応じて動的に追加
             tabs = [app_config["tabs"]["spatial"]]
+            if features["roi"]: tabs.append(app_config["tabs"]["roi"])
             if features["profile"]: tabs.append(app_config["tabs"]["profile"])
             if features["sobel"]: tabs.append(app_config["tabs"]["sobel"])
             if features["gms"]: tabs.append(app_config["tabs"]["gms"])
@@ -187,10 +198,25 @@ def main():
             with cols[0]:
                 st.markdown("**Reference**")
                 current_strategy.render_reference(st, ref_img, context)
-                # Calculate NIQE for Reference as well (optional but good for comparison)
-                if metrics_toggles.get("niqe", False):
-                     ref_niqe = compute_niqe(ref_img)
-                     st.caption(f"NIQE: {ref_niqe:.4f}")
+                # Calculate NR metrics for Reference
+                nr_metrics = ["niqe", "maniqa", "musiq", "clipiqa"]
+                ref_captions = []
+                for metric in nr_metrics:
+                    if metrics_toggles.get(metric, False):
+                        # Dynamic call to compute_{metric}
+                        # But we have them imported as functions.
+                        # Map string to function
+                        func_map = {
+                            "niqe": compute_niqe,
+                            "maniqa": compute_maniqa,
+                            "musiq": compute_musiq,
+                            "clipiqa": compute_clipiqa
+                        }
+                        val = func_map[metric](ref_img)
+                        ref_captions.append(f"{metric.upper()}: {val:.4f}")
+                
+                if ref_captions:
+                    st.caption(" / ".join(ref_captions))
 
             # --- Methods Columns ---
             for idx, m_file in enumerate(method_files):
@@ -223,7 +249,9 @@ def main():
 
                     caption_parts = []
                     # Order matters for display
-                    display_order = ["SNR", "PSNR", "SSIM", "FSIM", "GMSD", "NIQE"]
+                    caption_parts = []
+                    # Order matters for display
+                    display_order = ["SNR", "PSNR", "SSIM", "FSIM", "GMSD", "NIQE", "MANIQA", "MUSIQ", "CLIPIQA"]
                     for key in display_order:
                         if key in metrics:
                             val = metrics[key]
@@ -244,7 +272,10 @@ def main():
                     "SSIM": "SSIM (↑)",
                     "FSIM": "FSIM (↑)",
                     "GMSD": "GMSD (↓)",
-                    "NIQE": "NIQE (↓)"
+                    "NIQE": "NIQE (↓)",
+                    "MANIQA": "MANIQA (↑)",
+                    "MUSIQ": "MUSIQ (↑)",
+                    "CLIPIQA": "CLIPIQA (↑)"
                 }
                 # Only rename columns that exist
                 final_rename = {k: v for k, v in rename_map.items() if k in df_results.columns}

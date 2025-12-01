@@ -14,22 +14,23 @@ except ImportError:
     HAS_PYIQA = False
 
 @st.cache_resource
-def get_niqe_model():
+def get_pyiqa_model(metric_name):
     if not HAS_PYIQA:
         return None
         
     # device='cpu' for compatibility, can be 'cuda' if available
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     try:
-        model = pyiqa.create_metric('niqe', device=device)
+        # For MUSIQ, we might need to specify a variant, but default 'musiq' usually works (musiq-spaq)
+        model = pyiqa.create_metric(metric_name, device=device)
         return model
     except Exception as e:
-        st.error(f"Failed to load NIQE model: {e}")
+        st.error(f"Failed to load {metric_name} model: {e}")
         return None
 
-def compute_niqe(img):
-    """NIQE (Natural Image Quality Evaluator) の計算"""
-    model = get_niqe_model()
+def compute_pyiqa_metric(img, metric_name):
+    """PyIQAを用いた汎用的な指標計算"""
+    model = get_pyiqa_model(metric_name)
     if model is None:
         return float('nan')
     
@@ -47,9 +48,28 @@ def compute_niqe(img):
     img_tensor = img_tensor.to(device)
     
     with torch.no_grad():
-        score = model(img_tensor)
-        
-    return score.item()
+        try:
+            score = model(img_tensor)
+            return score.item()
+        except Exception as e:
+            # Some models might fail with specific image sizes
+            print(f"Error computing {metric_name}: {e}")
+            return float('nan')
+
+def compute_niqe(img):
+    return compute_pyiqa_metric(img, 'niqe')
+
+def compute_maniqa(img):
+    return compute_pyiqa_metric(img, 'maniqa')
+
+def compute_musiq(img):
+    # musiq often expects specific input size or handling, but pyiqa wraps it.
+    # Default musiq is usually trained on KonIQ-10k or SPAQ
+    return compute_pyiqa_metric(img, 'musiq')
+
+def compute_clipiqa(img):
+    # clipiqa or clipiqa+
+    return compute_pyiqa_metric(img, 'clipiqa')
 
 
 def compute_snr(ref, dist):

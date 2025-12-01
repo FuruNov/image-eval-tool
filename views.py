@@ -218,3 +218,26 @@ class HistogramView(ViewStrategy):
             cols[0].metric("Mean Bias", f"{stats['Mean Bias']:.4f}")
             cols[1].metric("Std Dev", f"{stats['Std Dev']:.4f}")
             cols[2].metric("Kurtosis", f"{stats['Kurtosis']:.2f}")
+
+class ROIView(ViewStrategy):
+    def render_reference(self, container, ref_img, context):
+        # 1. Full Image with ROI Box
+        # Use draw_roi to draw the box on the full image
+        ref_with_box = draw_roi(ref_img, context['crop_x'], context['crop_y'], context['crop_size'], config.CV_COLOR_RED)
+        container.image(ref_with_box, width="stretch", caption="Full Image (with ROI Box)")
+        
+        # 2. Zoomed Crop
+        ref_crop = get_crop(ref_img, context['crop_y'], context['crop_x'], context['crop_size'])
+        # Resize crop for better visibility if it's too small? 
+        # Streamlit handles display size, but pixelated look is desired for zoom.
+        # 'clamp=True' handles values outside 0-1, but we are 0-1.
+        container.image(ref_crop, width="stretch", caption="Zoomed ROI")
+
+    def render_method(self, container, ref_img, dist_img, context):
+        # 1. Full Image with ROI Box
+        dist_with_box = draw_roi(dist_img, context['crop_x'], context['crop_y'], context['crop_size'], config.CV_COLOR_RED)
+        container.image(dist_with_box, width="stretch", caption="Full Image (with ROI Box)")
+        
+        # 2. Zoomed Crop
+        dist_crop = get_crop(dist_img, context['crop_y'], context['crop_x'], context['crop_size'])
+        container.image(dist_crop, width="stretch", caption="Zoomed ROI")
