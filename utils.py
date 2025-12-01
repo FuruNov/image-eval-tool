@@ -6,9 +6,8 @@ import plotly.graph_objects as go
 import streamlit as st
 import image_similarity_measures.quality_metrics as ism
 import image_similarity_measures.quality_metrics as ism
-import torch
-
 try:
+    import torch
     import pyiqa
     HAS_PYIQA = True
 except ImportError:
