@@ -24,7 +24,9 @@ from utils import (
     plot_histograms,
     compute_snr,
     compute_fsim,
-    compute_gms
+    compute_gms,
+    compute_niqe,
+    HAS_PYIQA
 )
 from views import (
     SpatialView,
@@ -58,6 +60,11 @@ def main():
     st.sidebar.subheader("Metrics")
     metrics_toggles = {}
     for key, settings in app_config["sidebar"]["metrics"].items():
+        # Skip NIQE if not available
+        if key == "niqe" and not HAS_PYIQA:
+            metrics_toggles[key] = False
+            continue
+            
         metrics_toggles[key] = st.sidebar.checkbox(settings["label"], value=settings["default"])
     
     st.sidebar.divider()
@@ -87,8 +94,28 @@ def main():
         "psnr": lambda r, d: psnr(r, d, data_range=1.0),
         "ssim": lambda r, d: ssim(r, d, data_range=1.0, channel_axis=-1),
         "fsim": compute_fsim,
-        "gmsd": lambda r, d: compute_gms(r, d)[1]
+        "gmsd": lambda r, d: compute_gms(r, d)[1],
+        "niqe": lambda r, d: compute_niqe(d) # NIQE only needs distorted image
     }
+
+    # --- Default Images Logic ---
+    import pathlib
+    
+    # If no user input, try to load defaults
+    if not ref_file:
+        default_ref_path = pathlib.Path("assets/reference.png")
+        if default_ref_path.exists():
+            ref_file = default_ref_path
+            
+    if not method_files:
+        default_method_paths = [
+            pathlib.Path("assets/method_blur.png"),
+            pathlib.Path("assets/method_noise.png")
+        ]
+        # Filter existing files
+        existing_defaults = [p for p in default_method_paths if p.exists()]
+        if existing_defaults:
+            method_files = existing_defaults
 
     if ref_file:
         ref_img = load_image(ref_file)
@@ -160,6 +187,10 @@ def main():
             with cols[0]:
                 st.markdown("**Reference**")
                 current_strategy.render_reference(st, ref_img, context)
+                # Calculate NIQE for Reference as well (optional but good for comparison)
+                if metrics_toggles.get("niqe", False):
+                     ref_niqe = compute_niqe(ref_img)
+                     st.caption(f"NIQE: {ref_niqe:.4f}")
 
             # --- Methods Columns ---
             for idx, m_file in enumerate(method_files):
@@ -192,7 +223,7 @@ def main():
 
                     caption_parts = []
                     # Order matters for display
-                    display_order = ["SNR", "PSNR", "SSIM", "FSIM", "GMSD"]
+                    display_order = ["SNR", "PSNR", "SSIM", "FSIM", "GMSD", "NIQE"]
                     for key in display_order:
                         if key in metrics:
                             val = metrics[key]
@@ -204,7 +235,35 @@ def main():
             # CSVダウンロード
             if len(results) > 0:
                 st.divider()
-                st.dataframe(pd.DataFrame(results).set_index("Method"), width="stretch")
+                df_results = pd.DataFrame(results).set_index("Method")
+                
+                # Rename columns to include direction
+                rename_map = {
+                    "SNR": "SNR (↑)",
+                    "PSNR": "PSNR (↑)",
+                    "SSIM": "SSIM (↑)",
+                    "FSIM": "FSIM (↑)",
+                    "GMSD": "GMSD (↓)",
+                    "NIQE": "NIQE (↓)"
+                }
+                # Only rename columns that exist
+                final_rename = {k: v for k, v in rename_map.items() if k in df_results.columns}
+                df_results = df_results.rename(columns=final_rename)
+                
+                # Apply styling
+                styler = df_results.style.format("{:.4f}")
+                
+                # Highlight Max for (↑) columns
+                max_cols = [c for c in df_results.columns if "(↑)" in c]
+                if max_cols:
+                    styler = styler.highlight_max(subset=max_cols, axis=0, props="font-weight: bold; color: green;")
+                
+                # Highlight Min for (↓) columns
+                min_cols = [c for c in df_results.columns if "(↓)" in c]
+                if min_cols:
+                    styler = styler.highlight_min(subset=min_cols, axis=0, props="font-weight: bold; color: green;")
+
+                st.dataframe(styler, width='stretch')
 
 if __name__ == "__main__":
     main()

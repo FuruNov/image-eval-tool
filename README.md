@@ -10,6 +10,7 @@ Ground Truth (Reference) と提案手法 (Method) の画像をアップロード
 *   **PSNR (Peak Signal-to-Noise Ratio)**: ピーク信号対雑音比
 *   **SSIM (Structural Similarity)**: 構造的類似性
 *   **GMSD (Gradient Magnitude Similarity Deviation)**: 勾配の類似性に基づく画質評価指標
+*   **NIQE (Natural Image Quality Evaluator)**: 参照画像不要 (No-Reference) の自然画質評価指標。再構成特有の不自然さを評価します (要 `pyiqa`)。
 
 ### 2. 多角的な可視化 (Views)
 タブ切り替えにより、様々な視点から画像を評価できます。
@@ -25,6 +26,12 @@ Ground Truth (Reference) と提案手法 (Method) の画像をアップロード
 サイドバーの **"Enable ROI Zoom"** を有効にすると、全てのビューが選択した関心領域 (ROI) にフォーカスします。
 *   微細なテクスチャやエッジの再現性を詳細に確認できます。
 *   FFT やヒストグラムも ROI 内のデータに基づいて再計算されます。
+
+### 4. その他の機能
+*   **デフォルト画像**: 画像をアップロードせずに起動した場合、自動的にサンプル画像を読み込み、即座に動作確認が可能です。
+*   **スマートな比較表**:
+    *   各指標の良化方向（↑/↓）を明示します。
+    *   最も優れた値（Best Metric）を**太字・緑色**でハイライト表示します。
 
 ## インストール方法
 

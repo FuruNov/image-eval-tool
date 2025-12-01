@@ -5,6 +5,53 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
 import image_similarity_measures.quality_metrics as ism
+import image_similarity_measures.quality_metrics as ism
+import torch
+
+try:
+    import pyiqa
+    HAS_PYIQA = True
+except ImportError:
+    HAS_PYIQA = False
+
+@st.cache_resource
+def get_niqe_model():
+    if not HAS_PYIQA:
+        return None
+        
+    # device='cpu' for compatibility, can be 'cuda' if available
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    try:
+        model = pyiqa.create_metric('niqe', device=device)
+        return model
+    except Exception as e:
+        st.error(f"Failed to load NIQE model: {e}")
+        return None
+
+def compute_niqe(img):
+    """NIQE (Natural Image Quality Evaluator) の計算"""
+    model = get_niqe_model()
+    if model is None:
+        return float('nan')
+    
+    # img is (H, W, C) or (H, W), float 0-1
+    # pyiqa expects (B, C, H, W), float 0-1
+    
+    # Convert to tensor
+    if img.ndim == 2:
+        img = img[:, :, None] # (H, W, 1)
+        
+    # (H, W, C) -> (C, H, W)
+    img_tensor = torch.from_numpy(img.transpose(2, 0, 1)).float().unsqueeze(0)
+    
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    img_tensor = img_tensor.to(device)
+    
+    with torch.no_grad():
+        score = model(img_tensor)
+        
+    return score.item()
+
 
 def compute_snr(ref, dist):
     """Signal-to-Noise Ratio (SNR) の計算"""

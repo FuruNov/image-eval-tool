@@ -98,7 +98,7 @@ class ProfileView(ViewStrategy):
                 
                 # Plot profile for the cropped region
                 fig = plot_line_profile(ref_img_crop, dist_img_crop, rel_y, context['method_name'])
-                container.plotly_chart(fig, use_container_width=True, key=f"profile_zoom_{context.get('method_name', 'method')}")
+                container.plotly_chart(fig, width='stretch', key=f"profile_zoom_{context.get('method_name', 'method')}")
             else:
                 container.image(dist_img_crop, width="stretch", caption="Zoomed Image (Line outside)")
                 container.warning("Line Profile is outside the Zoomed Region.")
@@ -107,7 +107,7 @@ class ProfileView(ViewStrategy):
             dist_with_line[max(0, context['profile_y']-1):min(h, context['profile_y']+1), :] = config.CV_COLOR_RED
             container.image(dist_with_line, width="stretch", caption=f"Image with Profile Line (Y={context['profile_y']})")
             fig = plot_line_profile(ref_img, dist_img, context['profile_y'], context['method_name'])
-            container.plotly_chart(fig, use_container_width=True, key=f"profile_{context.get('method_name', 'method')}")
+            container.plotly_chart(fig, width='stretch', key=f"profile_{context.get('method_name', 'method')}")
 
 class SobelView(ViewStrategy):
     def render_reference(self, container, ref_img, context):
@@ -210,7 +210,7 @@ class HistogramView(ViewStrategy):
             dist_img = get_crop(dist_img, context['crop_y'], context['crop_x'], context['crop_size'])
             
         fig, stats = plot_histograms(ref_img, dist_img, context['method_name'])
-        container.plotly_chart(fig, use_container_width=True, key=f"hist_{context.get('method_name', 'method')}")
+        container.plotly_chart(fig, width='stretch', key=f"hist_{context.get('method_name', 'method')}")
         
         # Display stats
         with container.expander("Residual Statistics", expanded=True):

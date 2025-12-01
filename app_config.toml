@@ -17,6 +17,7 @@ psnr = { label = "PSNR", default = true }
 ssim = { label = "SSIM", default = true }
 fsim = { label = "FSIM", default = false }
 gmsd = { label = "GMSD", default = true }
+niqe = { label = "NIQE (No-Ref)", default = false }
 
 [tabs]
 spatial = "Spatial (Standard)"
