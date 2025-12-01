@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit as st
 import image_similarity_measures.quality_metrics as ism
-import image_similarity_measures.quality_metrics as ism
 import io
 import pathlib
 try:

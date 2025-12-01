@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from streamlit_image_comparison import image_comparison
 from PIL import Image
 
-
 import config
 from utils import (
     to_grayscale,
