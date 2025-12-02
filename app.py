@@ -18,7 +18,6 @@ from utils import (
     compute_gradient_magnitude,
     compute_fft_spectrum,
     get_crop,
-    get_crop,
     draw_roi,
     plot_line_profile,
     plot_histograms,
