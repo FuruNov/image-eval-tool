@@ -1,6 +1,6 @@
 {
     "ref_col_ratio": 0.5,
-    "feature_delta_e": true,
+    "feature_delta_e": false,
     "view_mode": "ROI Check",
     "feature_flicker": true,
     "feature_log_grad": true,
