@@ -250,7 +250,7 @@ def compute_gms(ref, dist, c=0.0026):
     else: ref_gray = ref
         
     if dist.ndim == 3: dist_gray = np.mean(dist, axis=2)
-    else: dist_gray = dist"""  """
+    else: dist_gray = dist
     
     # cv2.filter2DでCV_64Fに出力するため、入力をfloat64にキャスト
     ref_gray = ref_gray.astype(np.float64)

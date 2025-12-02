@@ -1,7 +1,7 @@
 {
     "ref_col_ratio": 0.5,
     "feature_delta_e": false,
-    "view_mode": "ROI Check",
+    "view_mode": "GMS Map",
     "feature_flicker": true,
     "feature_log_grad": true,
     "last_ref_path": ".cache/ref_noisy_eric_cartman.png",
