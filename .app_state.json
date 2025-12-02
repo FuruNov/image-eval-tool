@@ -1,7 +1,29 @@
 {
-    "ref_col_ratio": 1.0,
-    "feature_delta_e": false,
-    "view_mode": "Image Slider",
+    "ref_col_ratio": 0.5,
+    "feature_delta_e": true,
+    "view_mode": "GMS Map",
     "feature_flicker": true,
-    "feature_log_grad": true
+    "feature_log_grad": true,
+    "last_ref_path": ".cache/ref_noisy_eric_cartman.png",
+    "last_method_paths": [
+        ".cache/AdaLOP-l2l1.png",
+        ".cache/EMCP.png",
+        ".cache/LOP-l2l1.png",
+        ".cache/L1 norm.png"
+    ],
+    "profile_y": 229,
+    "feature_hist": false,
+    "metric_niqe": true,
+    "metric_maniqa": true,
+    "metric_musiq": true,
+    "metric_clipiqa": true,
+    "metric_piqe": true,
+    "metric_grad_kurtosis": false,
+    "metric_grad_gini": true,
+    "feature_sobel": true,
+    "hidden_methods": [],
+    "metric_psnr": true,
+    "metric_ssim": true,
+    "metric_gmsd": false,
+    "feature_gms": true
 }

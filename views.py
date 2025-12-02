@@ -3,8 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from streamlit_image_comparison import image_comparison
 from PIL import Image
+import io
 
-import config
+
 from utils import (
     to_grayscale,
     compute_gradient_magnitude,
@@ -60,13 +61,15 @@ class ProfileView(ViewStrategy):
             rel_y = context['profile_y'] - crop_y
             if 0 <= rel_y < crop_size:
                 ref_with_line = ref_img.copy()
-                ref_with_line[max(0, rel_y-1):min(crop_size, rel_y+1), :] = config.CV_COLOR_RED
+                half_thick = max(1, context.get('indicator_thickness', 4) // 2)
+                ref_with_line[max(0, rel_y-half_thick):min(crop_size, rel_y+half_thick), :] = context.get('indicator_color', np.array([0.0, 1.0, 0.0]))
                 container.image(ref_with_line, width="stretch", caption=f"Zoomed GT with Line (Y={context['profile_y']})")
             else:
                 container.image(ref_img, width="stretch", caption="Zoomed GT (Line outside)")
         else:
             ref_with_line = ref_img.copy()
-            ref_with_line[max(0, context['profile_y']-1):min(h, context['profile_y']+1), :] = config.CV_COLOR_RED
+            half_thick = max(1, context.get('indicator_thickness', 4) // 2)
+            ref_with_line[max(0, context['profile_y']-half_thick):min(h, context['profile_y']+half_thick), :] = context.get('indicator_color', np.array([0.0, 1.0, 0.0]))
             container.image(ref_with_line, width="stretch", caption=f"GT with Line (Y={context['profile_y']})")
 
     def render_method(self, container, ref_img, dist_img, context):
@@ -81,7 +84,8 @@ class ProfileView(ViewStrategy):
             rel_y = context['profile_y'] - crop_y
             if 0 <= rel_y < crop_size:
                 dist_with_line = dist_img_crop.copy()
-                dist_with_line[max(0, rel_y-1):min(crop_size, rel_y+1), :] = config.CV_COLOR_RED
+                half_thick = max(1, context.get('indicator_thickness', 4) // 2)
+                dist_with_line[max(0, rel_y-half_thick):min(crop_size, rel_y+half_thick), :] = context.get('indicator_color', np.array([0.0, 1.0, 0.0]))
                 container.image(dist_with_line, width="stretch", caption=f"Zoomed Image with Line (Y={context['profile_y']})")
                 
                 # Plot profile for the cropped region
@@ -92,7 +96,8 @@ class ProfileView(ViewStrategy):
                 container.warning("Line Profile is outside the Zoomed Region.")
         else:
             dist_with_line = dist_img.copy()
-            dist_with_line[max(0, context['profile_y']-1):min(h, context['profile_y']+1), :] = config.CV_COLOR_RED
+            half_thick = max(1, context.get('indicator_thickness', 4) // 2)
+            dist_with_line[max(0, context['profile_y']-half_thick):min(h, context['profile_y']+half_thick), :] = context.get('indicator_color', np.array([0.0, 1.0, 0.0]))
             container.image(dist_with_line, width="stretch", caption=f"Image with Profile Line (Y={context['profile_y']})")
             fig = plot_line_profile(ref_img, dist_img, context['profile_y'], context['method_name'])
             container.plotly_chart(fig, width='stretch', key=f"profile_{context.get('method_name', 'method')}")
@@ -135,13 +140,12 @@ class SliderView(ViewStrategy):
             img2=dist_uint8,
             label1="Reference",
             label2=context.get('method_name', 'Method'),
-            width=700, # Adjust as needed
+            width=250, # Reduced from 700 to minimize gap in multi-column layout
             starting_position=50,
             show_labels=True,
             make_responsive=True,
             in_memory=True
         )
-        container.markdown('<div style="margin-top: -20px;"></div>', unsafe_allow_html=True)
 
 class GMSView(ViewStrategy):
     def render_reference(self, container, ref_img, context):
@@ -190,7 +194,7 @@ class FFTView(ViewStrategy):
 
 class HistogramView(ViewStrategy):
     def render_reference(self, container, ref_img, context):
-        container.info("Histogram Analysis. Compare distributions in the Method column.")
+        pass
         
     def render_method(self, container, ref_img, dist_img, context):
         if context['zoom_enabled']:
@@ -211,7 +215,7 @@ class ROIView(ViewStrategy):
     def render_reference(self, container, ref_img, context):
         # 1. Full Image with ROI Box
         # Use draw_roi to draw the box on the full image
-        ref_with_box = draw_roi(ref_img, context['crop_x'], context['crop_y'], context['crop_size'], config.CV_COLOR_RED)
+        ref_with_box = draw_roi(ref_img, context['crop_x'], context['crop_y'], context['crop_size'], context.get('indicator_color', np.array([0.0, 1.0, 0.0])), thickness=context.get('indicator_thickness', 4))
         container.image(ref_with_box, width="stretch", caption="Full Image (with ROI Box)")
         
         # 2. Zoomed Crop
@@ -223,7 +227,7 @@ class ROIView(ViewStrategy):
 
     def render_method(self, container, ref_img, dist_img, context):
         # 1. Full Image with ROI Box
-        dist_with_box = draw_roi(dist_img, context['crop_x'], context['crop_y'], context['crop_size'], config.CV_COLOR_RED)
+        dist_with_box = draw_roi(dist_img, context['crop_x'], context['crop_y'], context['crop_size'], context.get('indicator_color', np.array([0.0, 1.0, 0.0])), thickness=context.get('indicator_thickness', 4))
         container.image(dist_with_box, width="stretch", caption="Full Image (with ROI Box)")
         
         # 2. Zoomed Crop
@@ -236,7 +240,7 @@ class FlickerView(ViewStrategy):
         if context['zoom_enabled']:
             crop_y, crop_x, crop_size = context['crop_y'], context['crop_x'], context['crop_size']
             ref_img = get_crop(ref_img, crop_y, crop_x, crop_size)
-        container.image(ref_img, caption="Reference", use_container_width=True)
+        container.image(ref_img, caption="Reference", width='stretch')
 
     def render_method(self, container, ref_img, dist_img, context):
         # Show Flicker GIF
@@ -246,14 +250,14 @@ class FlickerView(ViewStrategy):
             dist_img = get_crop(dist_img, crop_y, crop_x, crop_size)
             
         gif_bytes = create_flicker_gif(ref_img, dist_img, duration=500)
-        container.image(gif_bytes, caption="Flicker (Ref ↔ Method)", use_container_width=True)
+        container.image(gif_bytes, caption="Flicker (Ref ↔ Method)", width='stretch')
 
 class DeltaEView(ViewStrategy):
     def render_reference(self, container, ref_img, context):
         if context['zoom_enabled']:
             crop_y, crop_x, crop_size = context['crop_y'], context['crop_x'], context['crop_size']
             ref_img = get_crop(ref_img, crop_y, crop_x, crop_size)
-        container.image(ref_img, caption="Reference", use_container_width=True)
+        container.image(ref_img, caption="Reference", width='stretch')
 
     def render_method(self, container, ref_img, dist_img, context):
         if context['zoom_enabled']:
@@ -277,7 +281,7 @@ class DeltaEView(ViewStrategy):
         heatmap = plt.get_cmap('jet')(norm_map)[:, :, :3]
         
         # Display as image
-        container.image(heatmap, caption=f"ΔE Map (Mean: {mean_delta_e:.2f}, Max: {max_delta_e:.2f})", use_container_width=True)
+        container.image(heatmap, caption=f"ΔE Map (Mean: {mean_delta_e:.2f}, Max: {max_delta_e:.2f})", width='stretch')
 
 class LogGradientView(ViewStrategy):
     def render_reference(self, st_container, ref_img, context):
@@ -287,4 +291,4 @@ class LogGradientView(ViewStrategy):
     def render_method(self, st_container, ref_img, dist_img, context):
         method_name = context.get('method_name', 'Method')
         fig = plot_log_gradient_histogram(ref_img, dist_img, method_name)
-        st_container.plotly_chart(fig, use_container_width=True, key=f"log_grad_{method_name}")
+        st_container.plotly_chart(fig, width='stretch', key=f"log_grad_{method_name}")

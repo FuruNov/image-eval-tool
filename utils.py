@@ -351,18 +351,18 @@ def get_crop(img, y, x, size):
     x_end = min(x + size, w)
     return img[y:y_end, x:x_end]
 
-def draw_roi(img, x, y, size, color):
+def draw_roi(img, x, y, size, color, thickness=4):
     """画像にROI枠を描画する"""
     img_with_roi = img.copy()
     # 境界チェックは簡易的に行う（はみ出しはスライスで無視されるため）
     # 上辺
-    img_with_roi[y:y+2, x:x+size] = color
+    img_with_roi[y:y+thickness, x:x+size] = color
     # 下辺
-    img_with_roi[y+size-2:y+size, x:x+size] = color
+    img_with_roi[y+size-thickness:y+size, x:x+size] = color
     # 左辺
-    img_with_roi[y:y+size, x:x+2] = color
+    img_with_roi[y:y+size, x:x+thickness] = color
     # 右辺
-    img_with_roi[y:y+size, x+size-2:x+size] = color
+    img_with_roi[y:y+size, x+size-thickness:x+size] = color
     return img_with_roi
 
 def plot_line_profile(ref_img, dist_img, y_index, method_name):

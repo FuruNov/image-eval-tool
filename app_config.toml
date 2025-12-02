@@ -98,6 +98,74 @@ PIQE = "PIQE (↓)"
 GRAD_KURTOSIS = "Grad Kurtosis (↑)"
 GRAD_GINI = "Grad Gini (↑)"
 
+[metrics.tooltips]
+PSNR = """
+- **Full Name**: Peak Signal-to-Noise Ratio
+- **Measures**: The ratio between the maximum possible power of a signal and the power of corrupting noise.
+- **Interpretation**: Higher is better.
+"""
+SSIM = """
+- **Full Name**: Structural Similarity Index
+- **Measures**: The similarity between two images based on luminance, contrast, and structure.
+- **Interpretation**: Higher is better (max 1.0).
+"""
+GMSD = """
+- **Full Name**: Gradient Magnitude Similarity Deviation
+- **Measures**: The distortion of image structure by calculating the standard deviation of the gradient magnitude similarity map.
+- **Interpretation**: Lower is better.
+"""
+NIQE = """
+- **Full Name**: Naturalness Image Quality Evaluator
+- **Measures**: The deviation from natural image statistics (No-Reference).
+- **Interpretation**: Lower is better.
+"""
+MANIQA = """
+- **Full Name**: Multi-dimension Attention Network for IQA
+- **Measures**: Perceptual quality using a deep learning-based attention network (No-Reference).
+- **Interpretation**: Higher is better.
+"""
+MUSIQ = """
+- **Full Name**: Multi-scale Image Quality Transformer
+- **Measures**: Perceptual quality across different scales and aspect ratios (No-Reference).
+- **Interpretation**: Higher is better.
+"""
+CLIPIQA = """
+- **Full Name**: CLIP-based Image Quality Assessment
+- **Measures**: Image quality based on text prompts ('Good photo' vs 'Bad photo') using CLIP.
+- **Interpretation**: Higher is better.
+"""
+PIQE = """
+- **Full Name**: Perception based Image Quality Evaluator
+- **Measures**: Distortion in block-based processing (No-Reference).
+- **Interpretation**: Lower is better.
+"""
+Grad_Kurtosis = """
+- **Full Name**: Gradient Kurtosis
+- **Measures**: The kurtosis (heavy-tailedness) of the gradient magnitude distribution. Indicates edge/texture sharpness.
+- **Interpretation**: Context-dependent (usually higher means sharper edges).
+"""
+Grad_Gini = """
+- **Full Name**: Gradient Gini Coefficient
+- **Measures**: The sparsity of gradients.
+- **Interpretation**: Context-dependent (higher means more sparse/concentrated edges).
+"""
+EMD = """
+- **Full Name**: Earth Mover's Distance (Wasserstein Distance)
+- **Measures**: The distance between the Log-Gradient Histograms of Reference and Method.
+- **Interpretation**: Lower is better.
+"""
+SNR = """
+- **Full Name**: Signal-to-Noise Ratio
+- **Measures**: The ratio of signal power to noise power.
+- **Interpretation**: Higher is better.
+"""
+FSIM = """
+- **Full Name**: Feature Similarity Index Measure
+- **Measures**: Image quality using phase congruency and gradient magnitude.
+- **Interpretation**: Higher is better.
+"""
+
+
 [metrics.colors]
 gold_text = "#856404"
 gold_bg = "#fff3cd"
@@ -105,3 +173,9 @@ silver_text = "#495057"
 silver_bg = "#e2e3e5"
 bronze_text = "#854018"
 bronze_bg = "#ffe5d0"
+
+[ui.colors]
+indicator = [0.0, 1.0, 0.0]
+
+[ui.style]
+thickness = 4

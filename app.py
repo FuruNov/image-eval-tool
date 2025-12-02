@@ -9,9 +9,9 @@ import tomllib
 from streamlit_image_comparison import image_comparison
 from PIL import Image
 import io
+from streamlit_sortables import sort_items
 
 # Import from custom modules
-import config
 from utils import (
     load_image,
     to_grayscale,
@@ -34,6 +34,9 @@ from utils import (
     compute_emd,
     HAS_PYIQA
 )
+
+
+
 from views import (
     SpatialView,
     ProfileView,
@@ -89,6 +92,16 @@ def cleanup_cache(active_paths):
 with open("app_config.toml", "rb") as f:
     app_config = tomllib.load(f)
 
+# Tooltip Descriptions
+stTooltipHoverTarget = app_config.get("metrics", {}).get("tooltips", {})
+
+# Load UI Colors
+indicator_color_list = app_config.get("ui", {}).get("colors", {}).get("indicator", [0.0, 1.0, 0.0])
+indicator_color = np.array(indicator_color_list, dtype=np.float32)
+
+# Load UI Style
+indicator_thickness = app_config.get("ui", {}).get("style", {}).get("thickness", 4)
+
 # ページ設定
 st.set_page_config(layout=app_config["page"]["layout"], page_title=app_config["page"]["page_title"])
 
@@ -106,7 +119,8 @@ def main():
     
     # --- Sidebar Inputs ---
     # 1. Reference Input
-    st.sidebar.subheader("1. Reference")
+    # 1. Reference Input
+    st.sidebar.subheader("1. Reference Image")
     
     # Load current state
     current_ref_path = state_manager.get_value("last_ref_path", None)
@@ -120,9 +134,6 @@ def main():
         if ref_path != current_ref_path:
             current_ref_path = ref_path
             state_manager.set_value("last_ref_path", current_ref_path)
-            # Rerun to clear uploader state visually if needed, but Streamlit handles it.
-            # However, to avoid re-processing on every script run if uploader is not cleared:
-            # We can't easily clear uploader. We rely on the check that ref_path is what we have.
     
     # Display current reference
     ref_file = None
@@ -136,7 +147,8 @@ def main():
         st.sidebar.warning("No GT image loaded.")
 
     # 2. Methods Input
-    st.sidebar.subheader("2. Methods")
+    # 2. Methods Input
+    st.sidebar.subheader("2. Method Images")
     
     # Load current state
     current_method_paths = state_manager.get_value("last_method_paths", [])
@@ -186,6 +198,33 @@ def main():
         hidden_methods = set(state_manager.get_value("hidden_methods", []))
         
         # Use a copy to iterate safely while modifying
+        
+        # Reorder functionality
+        with st.sidebar.expander("Reorder Methods", expanded=False):
+            # Create a list of dicts for sort_items to handle unique IDs if needed, 
+            # but sort_items works best with simple strings. 
+            # We use basenames. If duplicates, this might be tricky.
+            # Assuming unique basenames for now as they are cached files.
+            sortable_items = [os.path.basename(p) for p in current_method_paths]
+            sorted_items = sort_items(sortable_items)
+            
+            # Update order if changed
+            if sorted_items != sortable_items:
+                # Reconstruct paths based on new order
+                # Create a mapping basename -> path
+                # Note: If multiple files have same basename, this mapping is ambiguous.
+                # But cache_uploaded_file uses original filename. 
+                # If user uploads 'foo.png' twice, it overwrites or handles it?
+                # cache_uploaded_file overwrites. So basenames are unique in cache dir?
+                # Yes, if they are flat in .cache.
+                path_map = {os.path.basename(p): p for p in current_method_paths}
+                new_order_paths = [path_map[item] for item in sorted_items if item in path_map]
+                
+                if new_order_paths != current_method_paths:
+                    current_method_paths = new_order_paths
+                    state_manager.set_value("last_method_paths", current_method_paths)
+                    st.rerun()
+
         for i, p in enumerate(current_method_paths):
             col1, col2, col3 = st.sidebar.columns([0.7, 0.15, 0.15])
             
@@ -260,52 +299,63 @@ def main():
     st.sidebar.divider()
 
     # --- Sidebar Settings ---
-    st.sidebar.subheader("Metrics")
-    metrics_toggles = {}
-    for key, settings in app_config["sidebar"]["metrics"].items():
-        # Skip PyIQA metrics if not available
-        pyiqa_metrics = app_config.get("metrics", {}).get("pyiqa", {}).get("metrics", ["niqe", "maniqa", "musiq", "clipiqa", "piqe"])
-        if key in pyiqa_metrics and not HAS_PYIQA:
-            metrics_toggles[key] = False
-            continue
+    with st.sidebar.expander("Metrics Settings", expanded=False):
+        metrics_toggles = {}
+        for key, settings in app_config["sidebar"]["metrics"].items():
+            # Skip PyIQA metrics if not available
+            pyiqa_metrics = app_config.get("metrics", {}).get("pyiqa", {}).get("metrics", ["niqe", "maniqa", "musiq", "clipiqa", "piqe"])
+            if key in pyiqa_metrics and not HAS_PYIQA:
+                metrics_toggles[key] = False
+                continue
+                
+            key_name = f"metric_{key}"
+            default_val = state_manager.get_value(key_name, settings["default"])
             
-        key_name = f"metric_{key}"
-        default_val = state_manager.get_value(key_name, settings["default"])
-        metrics_toggles[key] = st.sidebar.checkbox(
-            settings["label"], 
-            value=default_val,
-            key=key_name,
-            on_change=on_change_handler,
-            args=(key_name,)
-        )
+            # Find tooltip
+            tooltip = None
+            for t_key, t_desc in stTooltipHoverTarget.items():
+                # Normalize both key and label: lowercase and replace underscores with spaces
+                if t_key.lower().replace("_", " ") in settings["label"].lower().replace("_", " "): 
+                     tooltip = t_desc
+                     break
+            
+            metrics_toggles[key] = st.checkbox(
+                settings["label"], 
+                value=default_val,
+                key=key_name,
+                on_change=on_change_handler,
+                args=(key_name,),
+                help=tooltip
+            )
 
-    st.sidebar.subheader("Comparison Settings")
-    # 機能トグル
-    features = {}
-    features = {}
-    for key, settings in app_config["sidebar"]["toggles"].items():
-        key_name = f"feature_{key}"
-        default_val = state_manager.get_value(key_name, settings["default"])
-        features[key] = st.sidebar.checkbox(
-            settings["label"], 
-            value=default_val,
-            key=key_name,
-            on_change=on_change_handler,
-            args=(key_name,)
-        )
+    view_settings_expander = st.sidebar.expander("View Settings", expanded=False)
+    with view_settings_expander:
+        # 機能トグル
+        features = {}
+        for key, settings in app_config["sidebar"]["toggles"].items():
+            key_name = f"feature_{key}"
+            default_val = state_manager.get_value(key_name, settings["default"])
+            features[key] = st.checkbox(
+                settings["label"], 
+                value=default_val,
+                key=key_name,
+                on_change=on_change_handler,
+                args=(key_name,)
+            )
 
-    st.sidebar.subheader("Layout Settings")
-    ref_col_ratio = st.sidebar.slider(
-        "Reference Column Ratio", 
-        min_value=0.5, 
-        max_value=3.0, 
-        value=state_manager.get_value("ref_col_ratio", 1.0),
-        step=0.1,
-        key="ref_col_ratio",
-        on_change=on_change_handler,
-        args=("ref_col_ratio",),
-        help="Adjust the width of the Reference column relative to Method columns."
-    )
+        st.divider()
+        st.subheader("Layout Settings")
+        ref_col_ratio = st.slider(
+            "Reference Column Ratio", 
+            min_value=0.5, 
+            max_value=3.0, 
+            value=state_manager.get_value("ref_col_ratio", 1.0),
+            step=0.1,
+            key="ref_col_ratio",
+            on_change=on_change_handler,
+            args=("ref_col_ratio",),
+            help="Adjust the width of the Reference column relative to Method columns."
+        )
 
     # --- Strategies Initialization ---
     strategies = {
@@ -400,48 +450,52 @@ def main():
         crop_y, crop_x, crop_size = 0, 0, 100
         # Show ROI settings if Zoom is enabled OR ROI Check view is enabled
         if features["zoom"] or features.get("roi", False):
-            st.sidebar.divider()
-            st.sidebar.subheader("🔍 Zoom ROI Settings")
-            
-            # ROI Sliders with persistence
-            crop_size = st.sidebar.slider(
-                "Box Size", 32, min(h, w)//2, 
-                state_manager.get_value("crop_size", 100),
-                key="crop_size", on_change=on_change_handler, args=("crop_size",)
-            )
-            crop_x = st.sidebar.slider(
-                "X Position", 0, w - crop_size, 
-                state_manager.get_value("crop_x", w//2 - crop_size//2),
-                key="crop_x", on_change=on_change_handler, args=("crop_x",)
-            )
-            crop_y = st.sidebar.slider(
-                "Y Position", 0, h - crop_size, 
-                state_manager.get_value("crop_y", h//2 - crop_size//2),
-                key="crop_y", on_change=on_change_handler, args=("crop_y",)
-            )
+            with view_settings_expander:
+                st.divider()
+                st.subheader("🔍 Zoom ROI Settings")
+                # ROI Sliders with persistence
+                crop_size = st.slider(
+                    "Box Size", 32, min(h, w)//2, 
+                    state_manager.get_value("crop_size", 100),
+                    key="crop_size", on_change=on_change_handler, args=("crop_size",)
+                )
+                crop_x = st.slider(
+                    "X Position", 0, w - crop_size, 
+                    state_manager.get_value("crop_x", w//2 - crop_size//2),
+                    key="crop_x", on_change=on_change_handler, args=("crop_x",)
+                )
+                crop_y = st.slider(
+                    "Y Position", 0, h - crop_size, 
+                    state_manager.get_value("crop_y", h//2 - crop_size//2),
+                    key="crop_y", on_change=on_change_handler, args=("crop_y",)
+                )
 
-            # GTプレビュー上にROI枠(赤)を描画
-            ref_preview[crop_y:crop_y+2, crop_x:crop_x+crop_size] = config.CV_COLOR_RED
-            ref_preview[crop_y+crop_size-2:crop_y+crop_size, crop_x:crop_x+crop_size] = config.CV_COLOR_RED
-            ref_preview[crop_y:crop_y+crop_size, crop_x:crop_x+2] = config.CV_COLOR_RED
-            ref_preview[crop_y:crop_y+crop_size, crop_x+crop_size-2:crop_x+crop_size] = config.CV_COLOR_RED
+            # GTプレビュー上にROI枠(シアン)を描画
+            ref_preview[crop_y:crop_y+indicator_thickness, crop_x:crop_x+crop_size] = indicator_color
+            ref_preview[crop_y+crop_size-indicator_thickness:crop_y+crop_size, crop_x:crop_x+crop_size] = indicator_color
+            ref_preview[crop_y:crop_y+crop_size, crop_x:crop_x+indicator_thickness] = indicator_color
+            ref_preview[crop_y:crop_y+crop_size, crop_x+crop_size-indicator_thickness:crop_x+crop_size] = indicator_color
             
         # --- 【追加】ラインプロファイル設定 ---
         profile_y = h // 2
         if features["profile"]:
-            st.sidebar.subheader("📈 Line Profile Settings")
-            # 行選択スライダー
-            profile_y = st.sidebar.slider(
-                "Y Coordinate (Row)", 0, h-1, 
-                state_manager.get_value("profile_y", h//2),
-                key="profile_y", on_change=on_change_handler, args=("profile_y",)
-            )
+            with view_settings_expander:
+                st.divider()
+                st.subheader("📈 Line Profile Settings")
+                # 行選択スライダー
+                profile_y = st.slider(
+                    "Y Coordinate (Row)", 0, h-1, 
+                    state_manager.get_value("profile_y", h//2),
+                    key="profile_y", on_change=on_change_handler, args=("profile_y",)
+                )
             
-            # GTプレビュー上に対象行の線(赤)を描画
-            # 線の太さを2pxにして見やすくする
-            target_row_start = max(0, profile_y - 1)
-            target_row_end = min(h, profile_y + 1)
-            ref_preview[target_row_start:target_row_end, :] = config.CV_COLOR_RED
+            # GTプレビュー上に対象行の線(シアン)を描画
+            # GTプレビュー上に対象行の線(シアン)を描画
+            # 線の太さを設定値にして見やすくする
+            half_thick = max(1, indicator_thickness // 2)
+            target_row_start = max(0, profile_y - half_thick)
+            target_row_end = min(h, profile_y + half_thick)
+            ref_preview[target_row_start:target_row_end, :] = indicator_color
 
         # サイドバーにプレビュー表示
         st.sidebar.image(ref_preview, caption="Reference Preview (with ROI/Line indicators)", width="stretch")
@@ -484,8 +538,8 @@ def main():
             # 結果格納用
             results = []
             
-            # Log-Grad and Slider views do not need reference column
-            show_ref_col = active_tab not in [app_config["tabs"]["log_grad"], app_config["tabs"]["slider"]]
+            # Log-Grad, Slider, Histogram, and GMS views do not need reference column
+            show_ref_col = active_tab not in [app_config["tabs"]["log_grad"], app_config["tabs"]["slider"], app_config["tabs"]["hist"], app_config["tabs"]["gms"]]
             
             if show_ref_col:
                 # [ref_ratio, 1, 1, ...]
@@ -501,6 +555,8 @@ def main():
                 'crop_y': crop_y, 'crop_x': crop_x, 'crop_size': crop_size,
                 'profile_y': profile_y,
                 'zoom_enabled': features["zoom"],
+                'indicator_color': indicator_color,
+                'indicator_thickness': indicator_thickness,
                 'log_scale_hist': features.get("log_scale_hist", True)
             }
             
@@ -643,7 +699,22 @@ def main():
                 if min_cols:
                     styler = styler.apply(highlight_rank, subset=min_cols, axis=0, is_higher_better=False)
 
-                st.dataframe(styler, width='stretch')
+                # Prepare column config with tooltips
+                column_config = {}
+                for col in df_results.columns:
+                    # Match metric name in column header (e.g. "PSNR (↑)")
+                    for key, desc in stTooltipHoverTarget.items():
+                        # Normalize key (e.g. "Grad_Kurtosis" -> "Grad Kurtosis")
+                        norm_key = key.replace("_", " ")
+                        if norm_key in col:
+                            column_config[col] = st.column_config.NumberColumn(
+                                label=col,
+                                help=desc,
+                                format="%.4f"
+                            )
+                            break
+
+                st.dataframe(styler, width='stretch', column_config=column_config)
                 
                 # Legend
                 colors = app_config.get("metrics", {}).get("colors", {})
