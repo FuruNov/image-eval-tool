@@ -118,7 +118,7 @@ class SobelView(ViewStrategy):
 
 class SliderView(ViewStrategy):
     def render_reference(self, container, ref_img, context):
-        container.info("Slider View is active. Compare Reference vs Method in the Method column.")
+        pass
 
     def render_method(self, container, ref_img, dist_img, context):
         if context['zoom_enabled']:

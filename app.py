@@ -44,7 +44,6 @@ from views import (
     HistogramView,
     ROIView,
     FlickerView,
-    FlickerView,
     DeltaEView,
     LogGradientView
 )
@@ -319,7 +318,8 @@ def main():
         app_config["tabs"]["roi"]: ROIView(),
         app_config["tabs"]["flicker"]: FlickerView(),
         app_config["tabs"]["delta_e"]: DeltaEView(),
-        app_config["tabs"]["log_grad"]: LogGradientView()
+        app_config["tabs"]["log_grad"]: LogGradientView(),
+        app_config["tabs"]["slider"]: SliderView()
     }
     
     # --- Metric Functions ---
@@ -484,8 +484,8 @@ def main():
             # 結果格納用
             results = []
             
-            # Log-Grad view does not need reference column
-            show_ref_col = active_tab != app_config["tabs"]["log_grad"]
+            # Log-Grad and Slider views do not need reference column
+            show_ref_col = active_tab not in [app_config["tabs"]["log_grad"], app_config["tabs"]["slider"]]
             
             if show_ref_col:
                 # [ref_ratio, 1, 1, ...]

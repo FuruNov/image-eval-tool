@@ -1,7 +1,7 @@
 {
     "ref_col_ratio": 1.0,
     "feature_delta_e": false,
-    "view_mode": "Spatial (Standard)",
+    "view_mode": "Image Slider",
     "feature_flicker": true,
     "feature_log_grad": true
 }
