@@ -12,5 +12,6 @@ dependencies = [
     "scikit-image>=0.25.2",
     "streamlit-image-comparison>=0.0.4",
     "streamlit-image-coordinates>=0.4.0",
+    "streamlit-sortables>=0.3.1",
     "streamlit>=1.51.0",
 ]
