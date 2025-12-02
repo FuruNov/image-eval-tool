@@ -2,8 +2,11 @@
 page_title = "Image Quality Assessment Tool"
 layout = "wide"
 
+[local]
+enable_state_persistence = true
+
 [sidebar.toggles]
-zoom = { label = "Enable ROI Zoom", default = true }
+zoom = { label = "Enable ROI Zoom", default = false }
 fft = { label = "Enable FFT Analysis", default = false }
 profile = { label = "Enable Line Profile 📈", default = true }
 sobel = { label = "Enable Sobel Edge", default = false }
@@ -12,6 +15,7 @@ hist = { label = "Enable Histogram", default = false }
 slider = { label = "Enable Image Slider", default = true }
 flicker = { label = "Enable Flicker Test", default = true }
 delta_e = { label = "Enable CIELAB ΔE", default = false }
+log_grad = { label = "Enable Log-Grad Hist", default = false }
 roi = { label = "Enable ROI Check", default = true }
 
 [sidebar.metrics]
@@ -20,16 +24,18 @@ psnr = { label = "PSNR", default = true }
 ssim = { label = "SSIM", default = true }
 fsim = { label = "FSIM", default = false }
 gmsd = { label = "GMSD", default = true }
+emd = { label = "Grad EMD", default = false }
 niqe = { label = "NIQE (No-Ref)", default = false }
 maniqa = { label = "MANIQA (No-Ref)", default = false }
-musiq = { label = "MUSIQ (No-Ref)", default = false }
-clipiqa = { label = "CLIPIQA (No-Ref)", default = false }
+musiq = { label = "MUSIQ (PyIQA)", default = false }
+clipiqa = { label = "CLIPIQA (PyIQA)", default = false }
+piqe = { label = "PIQE (PyIQA)", default = false }
+grad_kurtosis = { label = "Grad Kurtosis (No-Ref)", default = false }
+grad_gini = { label = "Grad Gini (No-Ref)", default = false }
 
 [tabs]
 spatial = "Spatial (Standard)"
 roi = "ROI Check"
-
-
 profile = "Line Profile 📈"
 sobel = "Sobel Edge"
 gms = "GMS Map"
@@ -38,3 +44,64 @@ slider = "Image Slider"
 flicker = "Flicker Test (Blink)"
 delta_e = "CIELAB ΔE Map"
 fft = "Frequency (FFT)"
+log_grad = "Log-Grad Hist"
+
+[defaults]
+reference = "assets/reference.png"
+methods = [
+    "assets/method_blur.png",
+    "assets/method_noise.png",
+    "assets/method_jpeg.png",
+]
+
+[metrics.pyiqa]
+metrics = ["niqe", "maniqa", "musiq", "clipiqa", "piqe"]
+
+[metrics.display]
+order = [
+    "SNR",
+    "PSNR",
+    "SSIM",
+    "FSIM",
+    "GMSD",
+    "EMD",
+    "NIQE",
+    "PIQE",
+    "MANIQA",
+    "MUSIQ",
+    "CLIPIQA",
+    "GRAD_KURTOSIS",
+    "GRAD_GINI",
+]
+nr_metrics = [
+    "niqe",
+    "maniqa",
+    "musiq",
+    "clipiqa",
+    "piqe",
+    "grad_kurtosis",
+    "grad_gini",
+]
+
+[metrics.rename]
+SNR = "SNR (↑)"
+PSNR = "PSNR (↑)"
+SSIM = "SSIM (↑)"
+FSIM = "FSIM (↑)"
+GMSD = "GMSD (↓)"
+EMD = "Grad EMD (↓)"
+NIQE = "NIQE (↓)"
+MANIQA = "MANIQA (↑)"
+MUSIQ = "MUSIQ (↑)"
+CLIPIQA = "CLIPIQA (↑)"
+PIQE = "PIQE (↓)"
+GRAD_KURTOSIS = "Grad Kurtosis (↑)"
+GRAD_GINI = "Grad Gini (↑)"
+
+[metrics.colors]
+gold_text = "#856404"
+gold_bg = "#fff3cd"
+silver_text = "#495057"
+silver_bg = "#e2e3e5"
+bronze_text = "#854018"
+bronze_bg = "#ffe5d0"

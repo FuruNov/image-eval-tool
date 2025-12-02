@@ -15,7 +15,8 @@ from utils import (
     plot_histograms,
     compute_gms,
     compute_delta_e,
-    create_flicker_gif
+    create_flicker_gif,
+    plot_log_gradient_histogram
 )
 
 # --- Strategy Pattern for Views ---
@@ -277,3 +278,13 @@ class DeltaEView(ViewStrategy):
         
         # Display as image
         container.image(heatmap, caption=f"ΔE Map (Mean: {mean_delta_e:.2f}, Max: {max_delta_e:.2f})", use_container_width=True)
+
+class LogGradientView(ViewStrategy):
+    def render_reference(self, st_container, ref_img, context):
+        # No need to show reference image for this view
+        pass
+
+    def render_method(self, st_container, ref_img, dist_img, context):
+        method_name = context.get('method_name', 'Method')
+        fig = plot_log_gradient_histogram(ref_img, dist_img, method_name)
+        st_container.plotly_chart(fig, use_container_width=True, key=f"log_grad_{method_name}")

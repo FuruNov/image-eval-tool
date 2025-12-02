@@ -72,6 +72,9 @@ def compute_clipiqa(img):
     # clipiqa or clipiqa+
     return compute_pyiqa_metric(img, 'clipiqa')
 
+def compute_piqe(img):
+    return compute_pyiqa_metric(img, 'piqe')
+
 
 @st.cache_data
 def compute_snr(ref, dist):
@@ -98,6 +101,142 @@ def compute_fsim(ref, dist):
     
     # FSIM計算 (少し時間がかかる場合がある)
     return ism.fsim(ref_uint8, dist_uint8)
+
+@st.cache_data
+def compute_gradient_kurtosis(img):
+    """
+    勾配の尖度 (Kurtosis) を計算する
+    高いほどスパース（平坦な領域が多く、エッジが鋭い）
+    """
+    from scipy.stats import kurtosis
+    
+    # 勾配強度計算 (Sobel)
+    # compute_gradient_magnitude は視認性用に正規化されているため、
+    # 生の勾配を再計算する方が統計的には正確だが、ここでは簡易的に既存関数を利用するか、
+    # あるいは内部で再計算する。
+    # ここでは生の値を使いたいので再計算する。
+    
+    if img.ndim == 3:
+        gray = np.mean(img, axis=2)
+    else:
+        gray = img
+        
+    dx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+    dy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+    magnitude = np.sqrt(dx**2 + dy**2)
+    
+    # Fisher's definition (normal ==> 0.0)
+    k = kurtosis(magnitude.flatten(), fisher=True)
+    return k
+
+@st.cache_data
+def compute_raw_gradient_magnitude(img):
+    """生の勾配強度を計算する (Sobel)"""
+    if img.ndim == 3:
+        gray = np.mean(img, axis=2)
+    else:
+        gray = img
+        
+    dx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+    dy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+    magnitude = np.sqrt(dx**2 + dy**2)
+    return magnitude
+
+def plot_log_gradient_histogram(ref_img, dist_img, method_name):
+    """
+    勾配強度の対数ヒストグラムをプロットする
+    横軸: log10(Gradient Magnitude + epsilon)
+    縦軸: log10(Frequency)
+    """
+    epsilon = 1e-6
+    
+    # Compute gradients
+    grad_ref = compute_raw_gradient_magnitude(ref_img).flatten()
+    grad_dist = compute_raw_gradient_magnitude(dist_img).flatten()
+    
+    # Log transformation
+    log_grad_ref = np.log10(grad_ref + epsilon)
+    log_grad_dist = np.log10(grad_dist + epsilon)
+    
+    # Compute Wasserstein Distance (Earth Mover's Distance)
+    wd = compute_emd(ref_img, dist_img)
+    
+    fig = go.Figure()
+    
+    # Reference
+    fig.add_trace(go.Histogram(
+        x=log_grad_ref,
+        name='Reference',
+        marker_color='gray',
+        opacity=0.6,
+        nbinsx=100,
+        histnorm='probability' # Normalize to frequency
+    ))
+    
+    # Method
+    fig.add_trace(go.Histogram(
+        x=log_grad_dist,
+        name=method_name,
+        marker_color='red',
+        opacity=0.6,
+        nbinsx=100,
+        histnorm='probability'
+    ))
+    
+    fig.update_layout(
+        title="Log-Gradient Histogram",
+        xaxis_title="Log10(Gradient Magnitude)",
+        yaxis_title="Probability (Log Scale)",
+        yaxis_type="log", # Log scale for Y-axis
+        barmode='overlay',
+        height=400,
+        margin=dict(l=20, r=20, t=40, b=20),
+        legend=dict(orientation="h", y=1.02, x=1, xanchor="right")
+    )
+    
+    return fig
+
+@st.cache_data
+def compute_emd(ref_img, dist_img):
+    """
+    勾配分布間の Wasserstein Distance (EMD) を計算する
+    """
+    # Compute gradients
+    grad_ref = compute_raw_gradient_magnitude(ref_img).flatten()
+    grad_dist = compute_raw_gradient_magnitude(dist_img).flatten()
+    
+    # Use raw gradients (not log) for physical interpretation of edge strength differences
+    from scipy.stats import wasserstein_distance
+    wd = wasserstein_distance(grad_ref, grad_dist)
+    return wd
+
+@st.cache_data
+def compute_gradient_gini(img):
+    """
+    勾配のジニ係数 (Gini Index) を計算する
+    1.0に近いほどスパース
+    """
+    if img.ndim == 3:
+        gray = np.mean(img, axis=2)
+    else:
+        gray = img
+        
+    dx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+    dy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+    magnitude = np.sqrt(dx**2 + dy**2)
+    
+    # Flatten and sort
+    array = np.sort(magnitude.flatten())
+    # Remove zeros to avoid issues? Gini includes zeros usually.
+    # But if all zero (blank image), gini is 0.
+    
+    index = np.arange(1, array.shape[0] + 1)
+    n = array.shape[0]
+    
+    if np.sum(array) == 0:
+        return 0.0
+        
+    return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array)))
 
 @st.cache_data
 def compute_gms(ref, dist, c=0.0026):

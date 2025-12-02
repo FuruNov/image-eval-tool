@@ -1,0 +1,32 @@
+{
+    "last_method_paths": [
+        ".cache/AdaLOP-l2l1.png",
+        ".cache/EMCP.png",
+        ".cache/LOP-l2l1.png",
+        ".cache/L1 norm.png"
+    ],
+    "last_ref_path": ".cache/ref_noisy_eric_cartman.png",
+    "metric_psnr": true,
+    "metric_ssim": true,
+    "metric_gmsd": false,
+    "metric_niqe": true,
+    "metric_maniqa": true,
+    "metric_clipiqa": true,
+    "metric_musiq": true,
+    "metric_piqe": true,
+    "metric_grad_kurtosis": false,
+    "metric_grad_gini": false,
+    "hidden_methods": [
+        ".cache/AdaLOP-l2l1_S&P.png",
+        ".cache/EMCP_S&P.png"
+    ],
+    "feature_flicker": false,
+    "feature_slider": false,
+    "feature_roi": false,
+    "feature_log_grad": false,
+    "view_mode": "Spatial (Standard)",
+    "feature_fft": true,
+    "ref_col_ratio": 0.5,
+    "feature_log_scale_hist": true,
+    "metric_emd": false
+}
