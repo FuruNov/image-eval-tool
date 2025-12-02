@@ -53,8 +53,7 @@ import os
 import shutil
 
 CACHE_DIR = ".cache"
-if not os.path.exists(CACHE_DIR):
-    os.makedirs(CACHE_DIR)
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 def cache_uploaded_file(uploaded_file, prefix):
     """Save uploaded file to cache and return path."""
