@@ -17,14 +17,13 @@
     "metric_grad_kurtosis": false,
     "metric_grad_gini": false,
     "hidden_methods": [
-        ".cache/AdaLOP-l2l1_S&P.png",
-        ".cache/EMCP_S&P.png"
+        ".cache/L1 norm.png",
     ],
     "feature_flicker": false,
     "feature_slider": false,
     "feature_roi": false,
     "feature_log_grad": false,
-    "view_mode": "Spatial (Standard)",
+    "view_mode": "Line Profile \ud83d\udcc8",
     "feature_fft": true,
     "ref_col_ratio": 0.8,
     "feature_log_scale_hist": true,

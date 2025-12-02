@@ -379,7 +379,7 @@ def plot_line_profile(ref_img, dist_img, y_index, method_name):
         x=x_axis, y=ref_line,
         mode='lines',
         name='Reference',
-        line=dict(color='gray', width=1, dash='dash'),
+        line=dict(color='gray', width=1, dash='solid'),
         opacity=0.6
     ))
     
